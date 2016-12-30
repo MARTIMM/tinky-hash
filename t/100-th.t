@@ -114,21 +114,14 @@ subtest 'global transition taps', {
                 :qa( { :from<q>, :to<a>}),
               }
             ),
-            :workflow( {
-                :name<wf3>,
-                :initial-state<a>,
-              }
-            ),
-            :taps( {
-                :transitions-global<tr-method1>
-              }
-            ),
+            :workflow( { :name<wf3>, :initial-state<a>}),
+            :taps( { :transitions-global<tr-method1>}),
           )
         )
       );
     }
 
-    method tr-method1 ( $trans, $object) {
+    method tr-method1 ( $trans, $object ) {
 #say "M: ", self.^methods;
       say "Tr 1 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
     }
@@ -164,23 +157,9 @@ subtest 'specific transition taps', {
                 :qa( { :from<q>, :to<a>}),
               }
             ),
-            :workflow( {
-                :name<wf4>,
-                :initial-state<a>,
-              }
-            ),
+            :workflow( { :name<wf4>, :initial-state<a>}),
             :taps( {
-#                :states( {
-#                    :a( {
-#                        :leave<leave-a>
-#                      }
-#                    )
-#                  }
-#                ),
-                :transitions( {
-                    :zq<tr-zq>
-                  }
-                ),
+                :transitions( { :zq<tr-zq>}),
               }
             ),
           }
@@ -188,7 +167,7 @@ subtest 'specific transition taps', {
       );
     }
 
-    method tr-zq ( $trans, $object) {
+    method tr-zq ( $trans, $object ) {
       say "Tr 2 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
       is $trans.from.name, 'z', "Comes from 'z'";
       is $trans.to.name, 'q', "Goes to 'q'";
@@ -210,6 +189,56 @@ subtest 'specific transition taps', {
   diag 'Workflow wf3, transition supply from previous workflow';
   $th.workflow('wf3');
   $th.go-state('a');
+}
+
+#-------------------------------------------------------------------------------
+subtest 'state taps', {
+
+  class C4th is Tinky::Hash {
+
+    submethod BUILD ( ) {
+
+      self.from-hash(
+        :config( {
+            :states([< a z>]),
+            :transitions( {
+                :az( { :from<a>, :to<z>}),
+                :za( { :from<z>, :to<a>}),
+              }
+            ),
+            :workflow( { :name<wf5>, :initial-state<a>}),
+            :taps( {
+                :states( {
+                    :a( { :leave<leave-a>}),
+                    :z( { :enter<enter-z>})
+                  }
+                ),
+              }
+            ),
+          }
+        )
+      );
+    }
+
+    method leave-a ( $object ) {
+      say "Tr 2 left  a in '$object.^name()'";
+    }
+
+    method enter-z ( $object ) {
+      say "Tr 2 enter z in '$object.^name()'";
+    }
+  }
+
+  my C4th $th .= new;
+
+  diag 'Workflow wf5';
+  $th.workflow('wf5');
+  is $th.state.name, 'a', "state is '$th.state.name()'";
+  is-deeply $th.next-states>>.name.sort, (<z>,), "next: {$th.next-states>>.name}";
+
+  $th.go-state('z');
+  is $th.state.name, 'z', "state is '$th.state.name()'";
+  is-deeply $th.next-states>>.name.sort, (<a>,), "next: {$th.next-states>>.name}";
 }
 
 #-------------------------------------------------------------------------------

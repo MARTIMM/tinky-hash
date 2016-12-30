@@ -4,11 +4,11 @@ use Data::Dump::Tree;
 
 class Tinky::Hash does Tinky::Object {
 
-  has Hash $!states = {};
-  has Hash $!transitions = {};
+  my Hash $states = {};
+  my Hash $transitions = {};
   my Hash $workflow = {};
   my Hash $configs = {};
-  has Str $!current-wf = '';
+  my Str $current-wf = '';
 
   #-----------------------------------------------------------------------------
   submethod BUILD ( Hash :$config ) {
@@ -22,19 +22,20 @@ class Tinky::Hash does Tinky::Object {
 #dump $config;
 
     self!init;
+    self!check($config);
 
     # Setup all states
     for @($config<states>) -> $state {
 #say "S: $state";
       if $state ~~ Str {
-        $!states{$state} = Tinky::State.new(:name($state));
+        $states{$state} = Tinky::State.new(:name($state));
       }
 
       elsif $state ~~ Hash {
 
         my Str $name = $state<name> // Str;
         if ?$name {
-          $!states{$name} = Tinky::State.new(:$name);
+          $states{$name} = Tinky::State.new(:$name);
         }
 
         else {
@@ -42,12 +43,12 @@ class Tinky::Hash does Tinky::Object {
         }
 
         my Str $method = $state<enter> // Str;
-        $!states{$name}.enter-supply.act(
+        $states{$name}.enter-supply.act(
           -> $object { self."$method"(|$object); }
         ) if ?$method and self.^can($method);
 
         $method = $state<leave> // Str;
-        $!states{$name}.leave-supply.act(
+        $states{$name}.leave-supply.act(
           -> $object { self."$method"(|$object); }
         ) if ?$method and self.^can($method);
 
@@ -59,12 +60,12 @@ class Tinky::Hash does Tinky::Object {
     my Hash $trs = $config<transitions>;
     for $trs.keys -> $name {
 #say "T: $name $trs{$name}<from to>";
-      my Tinky::State $from = $!states{$trs{$name}<from>} // Tinky::State;
-      my Tinky::State $to = $!states{$trs{$name}<to>} // Tinky::State;
+      my Tinky::State $from = $states{$trs{$name}<from>} // Tinky::State;
+      my Tinky::State $to = $states{$trs{$name}<to>} // Tinky::State;
 
       if ?$from and ?$to {
 
-        $!transitions{$name} = Tinky::Transition.new( :$name, :$from, :$to);
+        $transitions{$name} = Tinky::Transition.new( :$name, :$from, :$to);
       }
 
       else {
@@ -75,13 +76,13 @@ class Tinky::Hash does Tinky::Object {
 
     # Check and setup workflow
     my Tinky::State $istate =
-       $!states{$config<workflow><initial-state>} // Tinky::State;
+       $states{$config<workflow><initial-state>} // Tinky::State;
     if ?$istate {
 
       $workflow{$config<workflow><name>} = Tinky::Workflow.new(
         :name($config<workflow><name>),
-        :states($!states.values),
-        :transitions($!transitions.values),
+        :states($states.values),
+        :transitions($transitions.values),
         :initial-state($istate)
       );
 
@@ -102,7 +103,6 @@ class Tinky::Hash does Tinky::Object {
     if ?$workflow{$workflow-name} {
 
       my Str $current-state = self.state.name if self.state.defined;
-#say "CS $current-state" if $current-state;
       if !$current-state or $current-state ~~ any(@($configs{$workflow-name}<states>)) {
         self.apply-workflow($workflow{$workflow-name});
       }
@@ -116,20 +116,53 @@ class Tinky::Hash does Tinky::Object {
       die "Workflow name '$workflow-name' not defined";
     }
 
-    $!current-wf = $workflow-name;
+    $current-wf = $workflow-name;
     self!set-taps;
   }
 
   #-----------------------------------------------------------------------------
   method !set-taps ( ) {
 
-    unless $configs{$!current-wf}<taps><taps-set> {
-#dump $configs{$!current-wf};
-      my Hash $trcfg = $configs{$!current-wf}<transitions> // {};
-      my Hash $taps = $configs{$!current-wf}<taps> // {};
+    unless $configs{$current-wf}<taps><taps-set> {
+
+      # setup the state taps
+      my Hash $taps = $configs{$current-wf}<taps> // {};
+      my Array $stcfg = $configs{$current-wf}<states> // [];
+      
+      # setup the state taps
+      for $taps<states>.keys -> $sk {
+say "TM: $sk";
+
+        if $sk ~~ any(@$stcfg) {
+          my Str $enter = $taps<states>{$sk}<enter> // Str;
+          $states{$sk}.enter-supply.tap(
+            -> $o {
+
+              self."$enter"($o);
+            }
+          ) if ?$enter and self.^can($enter);
+
+
+          my Str $leave = $taps<states>{$sk}<leave> // Str;
+          $states{$sk}.leave-supply.tap(
+            -> $o {
+
+              self."$leave"($o);
+            }
+          ) if ?$leave and self.^can($leave);
+        }
+
+        else {
+          die "Cannot set taps on undefined state '$sk'";
+        }
+      }
+
+
+      # setup the transition taps
+      my Hash $trcfg = $configs{$current-wf}<transitions> // {};
       my Str $global-method = $taps<transitions-global> // Str;
 
-      $workflow{$!current-wf}.transition-supply.tap(
+      $workflow{$current-wf}.transition-supply.tap(
         -> ( $t, $o) {
 
           for $taps<transitions>.keys -> $tk {
@@ -149,15 +182,15 @@ say "TM: $tk, $t.from.name(), $t.to.name(), $from, $to";
         }
       );
 
-      $configs{$!current-wf}<taps><taps-set> = True;
-dump $configs{$!current-wf};
+      $configs{$current-wf}<taps><taps-set> = True;
+#dump $configs{$current-wf};
     }
   }
 
   #-----------------------------------------------------------------------------
   method go-state ( Str:D $state-name ) {
 
-    my Tinky::State $nstate = $!states{$state-name} // Tinky::State;
+    my Tinky::State $nstate = $states{$state-name} // Tinky::State;
     if ?$nstate {
 
       self.state = $nstate;
@@ -172,9 +205,72 @@ dump $configs{$!current-wf};
   #-----------------------------------------------------------------------------
   method !init ( ) {
 
-    $!states = {};
-    $!transitions = {};
+    $states = {};
+    $transitions = {};
 #    $workflow = {};
+  }
+
+  #-----------------------------------------------------------------------------
+  method !check ( $cfg ) {
+
+    # get states
+    my @states = @($cfg<states>);
+
+    # check states in transitions
+    for $cfg<transitions>.keys -> $tk {
+      my Str $s = $cfg<transitions>{$tk}<from>;
+      die "From-state in transition $tk is not defined" unless ?$s;
+      die "From-state '$s' not defined in states in transition '$tk'"
+        unless $s ~~ any(@states);
+
+      $s = $cfg<transitions>{$tk}<to>;
+      die "To-state in transition $tk is not defined" unless ?$s;
+      die "To-state '$s' not defined in states in transition '$tk'"
+        unless $s ~~ any(@states);
+    }
+
+    # check state in workflow
+    my Str $wf = $cfg<workflow><name>;
+    my Str $is = $cfg<workflow><initial-state>;
+    die "Initial state '$is' in workflow '$wf' is defined in states"
+      unless $is ~~ any(@states);
+
+    # check if workflow is used before
+    die "Workflow '$wf' defined before" if $wf ~~ any($workflow.keys);
+
+    # check global transition tap
+    my Hash $taps = $cfg<taps> // Hash;
+    if ?$taps {
+      my Str $method = $taps<transitions-global> // Str;
+      die "Global transition method '$method' not found in {self.^name()}"
+        unless !$method or self.can($method);
+
+      # check specific transition taps
+      for $taps<transitions>.keys -> $tk {
+
+        die "Transition name '$tk' not defined in transitions"
+          unless $tk ~~ any($cfg<transitions>.keys);
+
+        $method = $taps<transitions>{$tk} // Str;
+        die "Specific transition method '$method' not found in {self.^name()}"
+          unless !$method or self.can($method);
+      }
+
+      # check state taps
+      for $taps<states>.keys -> $sk {
+
+        die "State '$sk' in states tap not defined in states"
+          unless $sk ~~ any(@states);
+
+        $method = $taps<states>{$sk}<enter> // Str;
+        die "State enter method not found in {self.^name()}"
+          unless !$method or self.^can($method);
+
+        $method = $taps<states>{$sk}<leave> // Str;
+        die "State leave method not found in {self.^name()}"
+          unless !$method or self.^can($method);
+      }
+    }
   }
 }
 
