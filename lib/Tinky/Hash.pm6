@@ -29,9 +29,9 @@ class Tinky::Hash does Tinky::Object {
       if $state ~~ Str {
         $!states{$state} = Tinky::State.new(:name($state));
       }
-      
+
       elsif $state ~~ Hash {
-      
+
         my Str $name = $state<name> // Str;
         if ?$name {
           $!states{$name} = Tinky::State.new(:$name);
@@ -56,13 +56,13 @@ class Tinky::Hash does Tinky::Object {
     }
 
     # Check and setup all transitions
-    for @($config<transitions>) -> $transition {
-#say "T: $transition<name from to>";
-      my Str $name = $transition<name>;
-      my Tinky::State $from = $!states{$transition<from>} // Tinky::State;
-      my Tinky::State $to = $!states{$transition<to>} // Tinky::State;
+    my Hash $trs = $config<transitions>;
+    for $trs.keys -> $name {
+#say "T: $name $trs{$name}<from to>";
+      my Tinky::State $from = $!states{$trs{$name}<from>} // Tinky::State;
+      my Tinky::State $to = $!states{$trs{$name}<to>} // Tinky::State;
 
-      if ?$name and ?$from and ?$to {
+      if ?$from and ?$to {
 
         $!transitions{$name} = Tinky::Transition.new( :$name, :$from, :$to);
       }
@@ -84,7 +84,7 @@ class Tinky::Hash does Tinky::Object {
         :transitions($!transitions.values),
         :initial-state($istate)
       );
-      
+
       $configs{$config<workflow><name>} = $config;
     }
 
@@ -106,7 +106,7 @@ class Tinky::Hash does Tinky::Object {
       if !$current-state or $current-state ~~ any(@($configs{$workflow-name}<states>)) {
         self.apply-workflow($workflow{$workflow-name});
       }
-      
+
       else {
         die "State '$current-state' not found in workflow '$workflow-name'";
       }
@@ -115,15 +115,18 @@ class Tinky::Hash does Tinky::Object {
     else {
       die "Workflow name '$workflow-name' not defined";
     }
-    
+
     $!current-wf = $workflow-name;
 
 #dump $configs{$!current-wf};
-    my Str $method = $configs{$!current-wf}<workflow><transitions-tap> // Str;
+    my Str $global-method = $taps<transitions-global> // Str;
 
     $workflow{$!current-wf}.transition-supply.tap(
-      -> List $l { self."$method"(|$l); }
-    ) if ?$method and self.^can($method);
+      -> List $l {
+
+        self."$global-method"(|$l) if ?$global-method and self.^can($global-method);
+      }
+    );
   }
 
   #-----------------------------------------------------------------------------
@@ -134,9 +137,9 @@ class Tinky::Hash does Tinky::Object {
 
       self.state = $nstate;
     }
-    
+
     else {
-    
+
       die "Next state '$state-name' not defined";
     }
   }

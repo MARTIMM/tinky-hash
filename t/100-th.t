@@ -16,13 +16,13 @@ subtest 'setup', {
   my Tinky::Hash $th .= new(
     :config( %(
         :states([< a b c>]),
-        :transitions( [
-            %( :name<ab>, :from<a>, :to<b>),
-            %( :name<ba>, :from<b>, :to<a>),
-            %( :name<bc>, :from<b>, :to<c>),
-            %( :name<ca>, :from<c>, :to<a>),
-            %( :name<cb>, :from<c>, :to<b>),
-          ]
+        :transitions( {
+            :ab( { :from<a>, :to<b>}),
+            :ba( { :from<b>, :to<a>}),
+            :bc( { :from<b>, :to<c>}),
+            :ca( { :from<c>, :to<a>}),
+            :cb( { :from<c>, :to<b>}),
+          }
         ),
         :workflow( {
             :name<wf1>,
@@ -53,13 +53,13 @@ subtest 'class setup', {
       self.from-hash(
         :config( %(
             :states([< a c q>]),
-            :transitions( [
-                %( :name<aq>, :from<a>, :to<q>),
-                %( :name<qa>, :from<q>, :to<a>),
-                %( :name<qc>, :from<q>, :to<c>),
-                %( :name<ca>, :from<c>, :to<a>),
-                %( :name<cq>, :from<c>, :to<q>),
-              ]
+            :transitions( {
+                :aq( { :from<a>, :to<q>}),
+                :qa( { :from<q>, :to<a>}),
+                :qc( { :from<q>, :to<c>}),
+                :ca( { :from<c>, :to<a>}),
+                :cq( { :from<c>, :to<q>}),
+              }
             ),
             :workflow( {
                 :name<wf2>,
@@ -100,7 +100,7 @@ subtest 'class setup', {
 }
 
 #-------------------------------------------------------------------------------
-subtest 'supplies1', {
+subtest 'global taps', {
 
   class C2th is Tinky::Hash {
 
@@ -109,15 +109,18 @@ subtest 'supplies1', {
       self.from-hash(
         :config( %(
             :states([< a q>]),
-            :transitions( [
-                %( :name<aq>, :from<a>, :to<q>),
-                %( :name<qa>, :from<q>, :to<a>),
-              ]
+            :transitions( {
+                :aq( { :from<a>, :to<q>}),
+                :qa( { :from<q>, :to<a>}),
+              }
             ),
             :workflow( {
                 :name<wf3>,
                 :initial-state<a>,
-                :transitions-tap('tr-method1'),
+              }
+            ),
+            :taps( {
+                :transitions-global<tr-method1>
               }
             ),
           )
@@ -145,7 +148,7 @@ subtest 'supplies1', {
 }
 
 #-------------------------------------------------------------------------------
-subtest 'supplies2', {
+subtest 'specific taps', {
 
   class C3th is Tinky::Hash {
 
@@ -154,32 +157,31 @@ subtest 'supplies2', {
       self.from-hash(
         :config( %(
             :states([< a z q>]),
-            :transitions( [
-                { :name<az>, :from<a>, :to<z>},
-                { :name<za>, :from<z>, :to<a>},
-                { :name<zq>, :from<z>, :to<q>},
-                { :name<qa>, :from<q>, :to<a>},
-              ]
+            :transitions( {
+                :az( { :from<a>, :to<z>}),
+                :za( { :from<z>, :to<a>}),
+                :zq( { :from<z>, :to<q>}),
+                :qa( { :from<q>, :to<a>}),
+              }
             ),
             :workflow( {
                 :name<wf4>,
                 :initial-state<a>,
-                :transitions-tap<tr-method2>,
               }
             ),
-            :taps(
-              :states( {
-                  :a( {
-                      :leave<leave-a>
-                    }
-                  )
-                }
-              ),
-              :transitions( {
-                  :zq<trans-zq>
-                }
-              ),
-              :transitions-global<tr-method2>
+            :taps( {
+                :states( {
+                    :a( {
+                        :leave<leave-a>
+                      }
+                    )
+                  }
+                ),
+                :transitions( {
+                    :zq<tr-method2>
+                  }
+                ),
+              }
             ),
           )
         )
@@ -187,7 +189,9 @@ subtest 'supplies2', {
     }
 
     method tr-method2 ( $trans, $object) {
-      say "Tr 2 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
+#      say "Tr 2 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
+      is $trans.from.name, 'z', "Comes from 'z'";
+      is $trans.to.name, 'q', "Goes to 'q'";
     }
   }
 
