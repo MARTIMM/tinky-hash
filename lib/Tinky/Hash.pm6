@@ -1,6 +1,6 @@
 use v6.c;
 use Tinky;
-use Data::Dump::Tree;
+#use Data::Dump::Tree;
 
 class Tinky::Hash does Tinky::Object {
 
@@ -19,87 +19,42 @@ class Tinky::Hash does Tinky::Object {
   #-----------------------------------------------------------------------------
   method from-hash ( Hash:D :$config ) {
 
-#dump $config;
-
     self!init;
     self!check($config);
 
     # Setup all states
     for @($config<states>) -> $state {
-#say "S: $state";
-      if $state ~~ Str {
-        $states{$state} = Tinky::State.new(:name($state));
-      }
-
-      elsif $state ~~ Hash {
-
-        my Str $name = $state<name> // Str;
-        if ?$name {
-          $states{$name} = Tinky::State.new(:$name);
-        }
-
-        else {
-          die "No field :name for state defined";
-        }
-
-        my Str $method = $state<enter> // Str;
-        $states{$name}.enter-supply.act(
-          -> $object { self."$method"(|$object); }
-        ) if ?$method and self.^can($method);
-
-        $method = $state<leave> // Str;
-        $states{$name}.leave-supply.act(
-          -> $object { self."$method"(|$object); }
-        ) if ?$method and self.^can($method);
-
-        my Str $leave = $state<leave> // Str;
-      }
+      $states{$state} = Tinky::State.new(:name($state));
     }
 
     # Check and setup all transitions
     my Hash $trs = $config<transitions>;
     for $trs.keys -> $name {
-#say "T: $name $trs{$name}<from to>";
-      my Tinky::State $from = $states{$trs{$name}<from>} // Tinky::State;
-      my Tinky::State $to = $states{$trs{$name}<to>} // Tinky::State;
 
-      if ?$from and ?$to {
-
-        $transitions{$name} = Tinky::Transition.new( :$name, :$from, :$to);
-      }
-
-      else {
-
-        die "In transition '$name', one or both of 'from' and 'to' is not a defined state";
-      }
+      $transitions{$name} = Tinky::Transition.new(
+        :$name,
+        :from($states{$trs{$name}<from>}),
+        :to($states{$trs{$name}<to>})
+      );
     }
 
     # Check and setup workflow
     my Tinky::State $istate =
        $states{$config<workflow><initial-state>} // Tinky::State;
-    if ?$istate {
 
-      $workflow{$config<workflow><name>} = Tinky::Workflow.new(
-        :name($config<workflow><name>),
-        :states($states.values),
-        :transitions($transitions.values),
-        :initial-state($istate)
-      );
+    $workflow{$config<workflow><name>} = Tinky::Workflow.new(
+      :name($config<workflow><name>),
+      :states($states.values),
+      :transitions($transitions.values),
+      :initial-state($istate)
+    );
 
-      $configs{$config<workflow><name>} = $config;
-    }
-
-    else {
-
-      die "Initial state '$config<workflow><initial-state>' is not a defined state";
-    }
+    $configs{$config<workflow><name>} = $config;
   }
 
   #-----------------------------------------------------------------------------
   method workflow ( Str:D $workflow-name ) {
 
-#say "WF $workflow-name";
-#dump $configs{$workflow-name}<states>;
     if ?$workflow{$workflow-name} {
 
       my Str $current-state = self.state.name if self.state.defined;
@@ -231,6 +186,8 @@ say "TM: $tk, $t.from.name(), $t.to.name(), $from, $to";
 
     # check state in workflow
     my Str $wf = $cfg<workflow><name>;
+    die "Workflow is not defined" unless ?$wf;
+
     my Str $is = $cfg<workflow><initial-state>;
     die "Initial state '$is' in workflow '$wf' is defined in states"
       unless $is ~~ any(@states);
