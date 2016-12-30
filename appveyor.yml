@@ -17,7 +17,7 @@ install:
   - SET PATH=C:\rakudo\bin;C:\rakudo\share\perl6\site\bin;%PATH%
   - panda update
 #  - panda installdeps .
-  - panda --notests install Tinky
+  - panda install Tinky
 
 build: off
 

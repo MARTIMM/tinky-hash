@@ -155,17 +155,31 @@ subtest 'supplies2', {
         :config( %(
             :states([< a z q>]),
             :transitions( [
-                %( :name<az>, :from<a>, :to<z>),
-                %( :name<za>, :from<z>, :to<a>),
-                %( :name<zq>, :from<z>, :to<q>),
-                %( :name<qa>, :from<q>, :to<a>),
+                { :name<az>, :from<a>, :to<z>},
+                { :name<za>, :from<z>, :to<a>},
+                { :name<zq>, :from<z>, :to<q>},
+                { :name<qa>, :from<q>, :to<a>},
               ]
             ),
             :workflow( {
                 :name<wf4>,
                 :initial-state<a>,
-                :transitions-tap('tr-method2'),
+                :transitions-tap<tr-method2>,
               }
+            ),
+            :taps(
+              :states( {
+                  :a( {
+                      :leave<leave-a>
+                    }
+                  )
+                }
+              ),
+              :transitions( {
+                  :zq<trans-zq>
+                }
+              ),
+              :transitions-global<tr-method2>
             ),
           )
         )
