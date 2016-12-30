@@ -1,7 +1,7 @@
 {
   "description":        "A Hash thingy using Tinky",
   "name":               "Tinky::Hash",
-  "version":            "0.2.1",
+  "version":            "0.3.0",
   "depends": [
     "Tinky"
   ],

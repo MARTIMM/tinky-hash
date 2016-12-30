@@ -100,7 +100,7 @@ subtest 'class setup', {
 }
 
 #-------------------------------------------------------------------------------
-subtest 'global taps', {
+subtest 'global transition taps', {
 
   class C2th is Tinky::Hash {
 
@@ -148,14 +148,14 @@ subtest 'global taps', {
 }
 
 #-------------------------------------------------------------------------------
-subtest 'specific taps', {
+subtest 'specific transition taps', {
 
   class C3th is Tinky::Hash {
 
     submethod BUILD ( ) {
 
       self.from-hash(
-        :config( %(
+        :config( {
             :states([< a z q>]),
             :transitions( {
                 :az( { :from<a>, :to<z>}),
@@ -170,26 +170,26 @@ subtest 'specific taps', {
               }
             ),
             :taps( {
-                :states( {
-                    :a( {
-                        :leave<leave-a>
-                      }
-                    )
-                  }
-                ),
+#                :states( {
+#                    :a( {
+#                        :leave<leave-a>
+#                      }
+#                    )
+#                  }
+#                ),
                 :transitions( {
-                    :zq<tr-method2>
+                    :zq<tr-zq>
                   }
                 ),
               }
             ),
-          )
+          }
         )
       );
     }
 
-    method tr-method2 ( $trans, $object) {
-#      say "Tr 2 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
+    method tr-zq ( $trans, $object) {
+      say "Tr 2 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
       is $trans.from.name, 'z', "Comes from 'z'";
       is $trans.to.name, 'q', "Goes to 'q'";
     }

@@ -117,16 +117,41 @@ class Tinky::Hash does Tinky::Object {
     }
 
     $!current-wf = $workflow-name;
+    self!set-taps;
+  }
 
+  #-----------------------------------------------------------------------------
+  method !set-taps ( ) {
+
+    unless $configs{$!current-wf}<taps><taps-set> {
 #dump $configs{$!current-wf};
-    my Str $global-method = $taps<transitions-global> // Str;
+      my Hash $trcfg = $configs{$!current-wf}<transitions> // {};
+      my Hash $taps = $configs{$!current-wf}<taps> // {};
+      my Str $global-method = $taps<transitions-global> // Str;
 
-    $workflow{$!current-wf}.transition-supply.tap(
-      -> List $l {
+      $workflow{$!current-wf}.transition-supply.tap(
+        -> ( $t, $o) {
 
-        self."$global-method"(|$l) if ?$global-method and self.^can($global-method);
-      }
-    );
+          for $taps<transitions>.keys -> $tk {
+            my $from = $trcfg{$tk}<from>;
+            my $to = $trcfg{$tk}<to>;
+say "TM: $tk, $t.from.name(), $t.to.name(), $from, $to";
+
+            my Str $spec-method = $taps<transitions>{$tk};
+            self."$spec-method"( $t, $o)
+                  if ?$spec-method and self.^can($spec-method)
+                     and $t.from.name eq $from
+                     and $t.to.name eq $to;
+          }
+
+          self."$global-method"( $t, $o)
+                  if ?$global-method and self.^can($global-method);
+        }
+      );
+
+      $configs{$!current-wf}<taps><taps-set> = True;
+dump $configs{$!current-wf};
+    }
   }
 
   #-----------------------------------------------------------------------------
