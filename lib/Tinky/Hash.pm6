@@ -78,6 +78,7 @@ class Tinky::Hash does Tinky::Object {
   #-----------------------------------------------------------------------------
   method !set-taps ( ) {
 
+    # check if already configured
     unless $configs{$current-wf}<taps><taps-set> {
 
       # setup the state taps
@@ -86,30 +87,16 @@ class Tinky::Hash does Tinky::Object {
       
       # setup the state taps
       for $taps<states>.keys -> $sk {
-say "TM: $sk";
 
-        if $sk ~~ any(@$stcfg) {
-          my Str $enter = $taps<states>{$sk}<enter> // Str;
-          $states{$sk}.enter-supply.tap(
-            -> $o {
+        my Str $enter = $taps<states>{$sk}<enter> // Str;
+        $states{$sk}.enter-supply.tap(
+          -> $o { self."$enter"($o); }
+        ) if ?$enter;
 
-              self."$enter"($o);
-            }
-          ) if ?$enter and self.^can($enter);
-
-
-          my Str $leave = $taps<states>{$sk}<leave> // Str;
-          $states{$sk}.leave-supply.tap(
-            -> $o {
-
-              self."$leave"($o);
-            }
-          ) if ?$leave and self.^can($leave);
-        }
-
-        else {
-          die "Cannot set taps on undefined state '$sk'";
-        }
+        my Str $leave = $taps<states>{$sk}<leave> // Str;
+        $states{$sk}.leave-supply.tap(
+          -> $o { self."$leave"($o); }
+        ) if ?$leave;
       }
 
 
@@ -117,28 +104,30 @@ say "TM: $sk";
       my Hash $trcfg = $configs{$current-wf}<transitions> // {};
       my Str $global-method = $taps<transitions-global> // Str;
 
-      $workflow{$current-wf}.transition-supply.tap(
-        -> ( $t, $o) {
+      # are there any taps to be made
+      if $taps<transitions>.elems or ?$global-method {
+        $workflow{$current-wf}.transition-supply.tap(
+          -> ( $t, $o) {
 
-          for $taps<transitions>.keys -> $tk {
-            my $from = $trcfg{$tk}<from>;
-            my $to = $trcfg{$tk}<to>;
-say "TM: $tk, $t.from.name(), $t.to.name(), $from, $to";
+            for $taps<transitions>.keys -> $tk {
+              my $from = $trcfg{$tk}<from>;
+              my $to = $trcfg{$tk}<to>;
 
-            my Str $spec-method = $taps<transitions>{$tk};
-            self."$spec-method"( $t, $o)
-                  if ?$spec-method and self.^can($spec-method)
-                     and $t.from.name eq $from
-                     and $t.to.name eq $to;
+              my Str $spec-method = $taps<transitions>{$tk};
+              self."$spec-method"( $t, $o)
+                    if ?$spec-method and self.^can($spec-method)
+                       and $t.from.name eq $from
+                       and $t.to.name eq $to;
+            }
+
+            self."$global-method"( $t, $o)
+                    if ?$global-method and self.^can($global-method);
           }
+        );
+      }
 
-          self."$global-method"( $t, $o)
-                  if ?$global-method and self.^can($global-method);
-        }
-      );
-
+      # taps are now configured
       $configs{$current-wf}<taps><taps-set> = True;
-#dump $configs{$current-wf};
     }
   }
 
@@ -162,14 +151,17 @@ say "TM: $tk, $t.from.name(), $t.to.name(), $from, $to";
 
     $states = {};
     $transitions = {};
-#    $workflow = {};
   }
 
   #-----------------------------------------------------------------------------
   method !check ( $cfg ) {
 
+    # check config
+    die "No configuration provided" unless ?$cfg and $cfg.keys;
+
     # get states
-    my @states = @($cfg<states>);
+    my @states = @($cfg<states>) // ();
+    die "No states defined" unless +@states;
 
     # check states in transitions
     for $cfg<transitions>.keys -> $tk {
@@ -185,7 +177,7 @@ say "TM: $tk, $t.from.name(), $t.to.name(), $from, $to";
     }
 
     # check state in workflow
-    my Str $wf = $cfg<workflow><name>;
+    my Str $wf = $cfg<workflow><name> // Str;
     die "Workflow is not defined" unless ?$wf;
 
     my Str $is = $cfg<workflow><initial-state>;
