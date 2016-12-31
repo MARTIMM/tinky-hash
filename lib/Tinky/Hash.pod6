@@ -83,11 +83,29 @@ transition.
 
 =head2 new
 
+  submethod BUILD ( Hash :$config )
+
+Instantiate class. When config is given, it will call from-hash with it.
+
 =head2 from-hash
+
+  method from-hash ( Hash:D :$config )
+
+Reads the configuration and uses the methods from Tinky to define states,
+transitions, workflow and also defines the taps for the events of transitions,
+leaving or entering a state.
+
+=head3 Configuration structure
+
+=item1 states
 
 =head2 workflow
 
+  method workflow ( Str:D $workflow-name )
+
 =head2 go-state
+
+  method go-state ( Str:D $state-name )
 
 =end pod
 
