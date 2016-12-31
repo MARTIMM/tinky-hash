@@ -63,7 +63,7 @@ class Tinky::Hash does Tinky::Object {
       }
 
       else {
-        die "State '$current-state' not found in workflow '$workflow-name'";
+        die "Cannot switch workflow. State '$current-state' not found in workflow '$workflow-name'";
       }
     }
 
@@ -164,6 +164,8 @@ class Tinky::Hash does Tinky::Object {
     die "No states defined" unless +@states;
 
     # check states in transitions
+    die "No transitions defined" unless $cfg<transitions>:exists;
+
     for $cfg<transitions>.keys -> $tk {
       my Str $s = $cfg<transitions>{$tk}<from>;
       die "From-state in transition $tk is not defined" unless ?$s;
@@ -181,7 +183,7 @@ class Tinky::Hash does Tinky::Object {
     die "Workflow is not defined" unless ?$wf;
 
     my Str $is = $cfg<workflow><initial-state>;
-    die "Initial state '$is' in workflow '$wf' is defined in states"
+    die "Initial state '$is' in workflow '$wf' is not defined"
       unless $is ~~ any(@states);
 
     # check if workflow is used before
@@ -208,15 +210,15 @@ class Tinky::Hash does Tinky::Object {
       # check state taps
       for $taps<states>.keys -> $sk {
 
-        die "State '$sk' in states tap not defined in states"
+        die "State '$sk' in states tap not defined"
           unless $sk ~~ any(@states);
 
         $method = $taps<states>{$sk}<enter> // Str;
-        die "State enter method not found in {self.^name()}"
+        die "State enter method '$method' not found in {self.^name()}"
           unless !$method or self.^can($method);
 
         $method = $taps<states>{$sk}<leave> // Str;
-        die "State leave method not found in {self.^name()}"
+        die "State leave method '$method' not found in {self.^name()}"
           unless !$method or self.^can($method);
       }
     }
