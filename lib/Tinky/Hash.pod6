@@ -70,8 +70,9 @@ use v6.c;
 To understand this module it is wise to also read the documentation about
 Tinky and day 18 2016 of the perl6 advent calendar.
 
-I was triggered writing Tinky::Hash by the Tinky::JSON module to define a data
-structure instead of using the commands directly. It makes for a cleaner setup.
+I was triggered writing C<Tinky::Hash> by the Tinky::JSON module to define a
+data structure instead of using the commands directly. It makes for a cleaner
+setup all from a single class where it is needed.
 
 A few things are added here compared to the JSON implementation. Using a class
 which inherits the Tinky::Hash class it is possible to call methods defined by
@@ -79,13 +80,16 @@ their name in the config. Furthermore, besides that a method can be called upon
 all transition events, it is possible to call a method on one specific
 transition.
 
+Because of the way this class stores its data, the workflows are still usable
+from other classes who inherit the C<Tinky::Hash>.
+
 =head1 Methods
 
 =head2 new
 
   submethod BUILD ( Hash :$config )
 
-Instantiate class. When config is given, it will call from-hash with it.
+Instantiate class. When config is given, it will call C<from-hash> with it.
 
 =head2 from-hash
 
@@ -97,7 +101,56 @@ leaving or entering a state.
 
 =head3 Configuration structure
 
+The top level looks like the following;
+
+  :config( {
+      :states( ... ),
+      :transitions( ... ),
+      :workflow( ... ),
+      :taps( ... )
+    }
+  )
+
 =item1 states
+
+States is used to specify all the states used in the workflow. It is an array
+of names for the states. These are used to refer to in transitions, workflow and
+taps.
+
+  :config( { :states([<locked opened>]), ... })
+
+=item transitions
+
+Transitions describe the connections between the states. The names of defined
+transitions are used in taps.
+
+  :config( {
+      :states([<locked opened>]),
+      :transitions( {
+          :openit( { :from<locked>, :to<opened>}),
+          :lockit( { :from<opened>, :to<locked>})
+        }
+      ),
+      ...
+    }
+  )
+
+=item workflow
+
+A workflow binds everything together specifying a name for the flow and an
+initial state. E.g. using the defined config above
+
+  :config( {
+      ...,
+      :workflow( { :name(resource-lock), :initial-state<locked>}),
+      ...
+    }
+  )
+
+=item taps
+
+Taps are used to handle events such as entering or leaving a state or on
+transitions.
 
 =head2 workflow
 
