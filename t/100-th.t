@@ -220,12 +220,12 @@ subtest 'state taps', {
       );
     }
 
-    method leave-a ( $object ) {
-      say "Tr 2 left  a in '$object.^name()'";
+    method leave-a ( ) {
+      say "Tr 2 left  a in '{self.^name()}'";
     }
 
-    method enter-z ( $object ) {
-      say "Tr 2 enter z in '$object.^name()'";
+    method enter-z ( ) {
+      say "Tr 2 enter z in '{self.^name()}'";
     }
   }
 

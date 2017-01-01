@@ -4,6 +4,8 @@ use Tinky;
 
 class Tinky::Hash does Tinky::Object {
 
+  enum EventType is export <Enter Leave Transit>;
+
   has Hash $!states = {};
   has Hash $!transitions = {};
   my Hash $workflow = {};
@@ -111,13 +113,13 @@ class Tinky::Hash does Tinky::Object {
       for $taps<states>.keys -> $sk {
 
         my Str $enter = $taps<states>{$sk}<enter> // Str;
-        $!states{$sk}.enter-supply.tap(
-          -> $o { self."$enter"($o); }
+        $configs{$current-wf}<wf-states>{$sk}.enter-supply.tap(
+          -> $o { $o."$enter"( :state($sk), :event(Enter)); }
         ) if ?$enter;
 
         my Str $leave = $taps<states>{$sk}<leave> // Str;
-        $!states{$sk}.leave-supply.tap(
-          -> $o { self."$leave"($o); }
+        $configs{$current-wf}<wf-states>{$sk}.leave-supply.tap(
+          -> $o { $o."$leave"( :state($sk), :event(Leave)); }
         ) if ?$leave;
       }
 
