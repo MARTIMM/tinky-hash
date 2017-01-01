@@ -70,18 +70,19 @@ use v6.c;
 To understand this module it is wise to also read the documentation about
 Tinky and day 18 2016 of the perl6 advent calendar.
 
-I was triggered writing C<Tinky::Hash> by the Tinky::JSON module to define a
+I was triggered writing C<Tinky::Hash> by the C<Tinky::JSON> module to define a
 data structure instead of using the commands directly. It makes for a cleaner
-setup all from a single class where it is needed.
+setup all from a single class where it is needed. Also it can be stored in
+other formats besides C<JSON>, Examples are C<YAML> and C<TOML>.
 
-A few things are added here compared to the JSON implementation. Using a class
-which inherits the Tinky::Hash class it is possible to call methods defined by
-their name in the config. Furthermore, besides that a method can be called upon
-all transition events, it is possible to call a method on one specific
-transition.
+A few things are added here compared to the C<Tinky::JSON> implementation. Using
+a class which inherits the C<Tinky::Hash> class it is possible to call methods
+defined by their name in the config. Furthermore, besides that a method can be
+called upon all transition events, it is possible to call a method on one
+specific transition.
 
 Because of the way this class stores its data, the workflows are still usable
-from other classes who inherit the C<Tinky::Hash>.
+from other classes which inherit the C<Tinky::Hash>.
 
 =head1 Methods
 
@@ -122,10 +123,10 @@ taps.
 =item transitions
 
 Transitions describe the connections between the states. The names of defined
-transitions are used in taps.
+transitions are used in taps. With the states mentioned above;
 
   :config( {
-      :states([<locked opened>]),
+      ...
       :transitions( {
           :openit( { :from<locked>, :to<opened>}),
           :lockit( { :from<opened>, :to<locked>})
@@ -141,7 +142,7 @@ A workflow binds everything together specifying a name for the flow and an
 initial state. E.g. using the defined config above
 
   :config( {
-      ...,
+      ...
       :workflow( { :name(resource-lock), :initial-state<locked>}),
       ...
     }
@@ -149,8 +150,32 @@ initial state. E.g. using the defined config above
 
 =item taps
 
-Taps are used to handle events such as entering or leaving a state or on
-transitions.
+Supplies are used to handle events such as entering or leaving a state or on
+transitions. By creating a tap on a supply the object gets informed by these
+events. C<Tinky> allows you to specify two types of taps. These are the taps on
+events on entering and leaving a state and a tap to get all transition events.
+With C<Tinky::Hash> you can also specify taps on a specific transition. E.g.
+
+  :config( {
+      ...
+      :taps( {
+          :states( {
+              :locked( { :leave<make-log>}),
+            }
+          ),
+        }
+      )
+    }
+  )
+
+Here when a transition is made from I<locked> to I<opened>, the method C<make-log>
+is called upon leaving the state I<locked>. Methods used like this must be
+defined as follows;
+
+  method make-log ( Str :$state, EventType :$event )
+
+
+
 
 =head2 workflow
 
