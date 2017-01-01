@@ -4,8 +4,8 @@ use Tinky;
 
 class Tinky::Hash does Tinky::Object {
 
-  my Hash $states = {};
-  my Hash $transitions = {};
+  has Hash $!states = {};
+  has Hash $!transitions = {};
   my Hash $workflow = {};
   my Hash $configs = {};
   my Str $current-wf = '';
@@ -22,33 +22,35 @@ class Tinky::Hash does Tinky::Object {
     self!init;
     self!check($config);
 
-    # Setup all states
+    # setup all states
     for @($config<states>) -> $state {
-      $states{$state} = Tinky::State.new(:name($state));
+      $!states{$state} = Tinky::State.new(:name($state));
     }
 
-    # Check and setup all transitions
+    # setup all transitions
     my Hash $trs = $config<transitions>;
     for $trs.keys -> $name {
 
-      $transitions{$name} = Tinky::Transition.new(
+      $!transitions{$name} = Tinky::Transition.new(
         :$name,
-        :from($states{$trs{$name}<from>}),
-        :to($states{$trs{$name}<to>})
+        :from($!states{$trs{$name}<from>}),
+        :to($!states{$trs{$name}<to>})
       );
     }
 
-    # Check and setup workflow
+    # setup workflow
     my Tinky::State $istate =
-       $states{$config<workflow><initial-state>} // Tinky::State;
+       $!states{$config<workflow><initial-state>} // Tinky::State;
 
     $workflow{$config<workflow><name>} = Tinky::Workflow.new(
       :name($config<workflow><name>),
-      :states($states.values),
-      :transitions($transitions.values),
+      :states($!states.values),
+      :transitions($!transitions.values),
       :initial-state($istate)
     );
 
+    $config<wf-states> = $!states.clone;
+    $config<wf-transitions> = $!transitions.clone;
     $configs{$config<workflow><name>} = $config;
   }
 
@@ -58,7 +60,8 @@ class Tinky::Hash does Tinky::Object {
     if ?$workflow{$workflow-name} {
 
       my Str $current-state = self.state.name if self.state.defined;
-      if !$current-state or $current-state ~~ any(@($configs{$workflow-name}<states>)) {
+      if !$current-state
+         or $current-state ~~ any(@($configs{$workflow-name}<states>)) {
         self.apply-workflow($workflow{$workflow-name});
       }
 
@@ -76,6 +79,25 @@ class Tinky::Hash does Tinky::Object {
   }
 
   #-----------------------------------------------------------------------------
+  method go-state ( Str:D $state-name ) {
+
+    die "No active workflow" unless ?$current-wf;
+
+    my Tinky::State $nstate =
+       $configs{$current-wf}<wf-states>{$state-name} // Tinky::State;
+
+    if ?$nstate {
+
+      self.state = $nstate;
+    }
+
+    else {
+
+      die "Next state '$state-name' not defined";
+    }
+  }
+
+  #-----------------------------------------------------------------------------
   method !set-taps ( ) {
 
     # check if already configured
@@ -89,12 +111,12 @@ class Tinky::Hash does Tinky::Object {
       for $taps<states>.keys -> $sk {
 
         my Str $enter = $taps<states>{$sk}<enter> // Str;
-        $states{$sk}.enter-supply.tap(
+        $!states{$sk}.enter-supply.tap(
           -> $o { self."$enter"($o); }
         ) if ?$enter;
 
         my Str $leave = $taps<states>{$sk}<leave> // Str;
-        $states{$sk}.leave-supply.tap(
+        $!states{$sk}.leave-supply.tap(
           -> $o { self."$leave"($o); }
         ) if ?$leave;
       }
@@ -132,25 +154,10 @@ class Tinky::Hash does Tinky::Object {
   }
 
   #-----------------------------------------------------------------------------
-  method go-state ( Str:D $state-name ) {
-
-    my Tinky::State $nstate = $states{$state-name} // Tinky::State;
-    if ?$nstate {
-
-      self.state = $nstate;
-    }
-
-    else {
-
-      die "Next state '$state-name' not defined";
-    }
-  }
-
-  #-----------------------------------------------------------------------------
   method !init ( ) {
 
-    $states = {};
-    $transitions = {};
+    $!states = {};
+    $!transitions = {};
   }
 
   #-----------------------------------------------------------------------------
