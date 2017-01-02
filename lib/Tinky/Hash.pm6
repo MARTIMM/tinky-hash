@@ -4,7 +4,7 @@ use Tinky;
 
 class Tinky::Hash does Tinky::Object {
 
-  enum EventType is export <Enter Leave Transit>;
+  enum EventType is export <Enter Leave>;
 
   has Hash $!states = {};
   has Hash $!transitions = {};
@@ -114,12 +114,12 @@ class Tinky::Hash does Tinky::Object {
 
         my Str $enter = $taps<states>{$sk}<enter> // Str;
         $configs{$current-wf}<wf-states>{$sk}.enter-supply.tap(
-          -> $o { $o."$enter"( :state($sk), :event(Enter)); }
+          -> $o { self."$enter"( $o, :state($sk), :event(Enter)); }
         ) if ?$enter;
 
         my Str $leave = $taps<states>{$sk}<leave> // Str;
         $configs{$current-wf}<wf-states>{$sk}.leave-supply.tap(
-          -> $o { $o."$leave"( :state($sk), :event(Leave)); }
+          -> $o { self."$leave"( $o, :state($sk), :event(Leave)); }
         ) if ?$leave;
       }
 
@@ -138,13 +138,14 @@ class Tinky::Hash does Tinky::Object {
               my $to = $trcfg{$tk}<to>;
 
               my Str $spec-method = $taps<transitions>{$tk};
-              self."$spec-method"( $t, $o)
+              self."$spec-method"( $o, $t, :transit($tk))
                     if ?$spec-method and self.^can($spec-method)
                        and $t.from.name eq $from
                        and $t.to.name eq $to;
             }
 
-            self."$global-method"( $t, $o)
+#say "$o, $global-method, ", self.^name if ?$global-method and self.^can($global-method);
+            self."$global-method"( $o, $t)
                     if ?$global-method and self.^can($global-method);
           }
         );

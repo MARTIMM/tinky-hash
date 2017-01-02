@@ -121,9 +121,9 @@ subtest 'global transition taps', {
       );
     }
 
-    method tr-method1 ( $trans, $object ) {
-#say "M: ", self.^methods;
-      say "Tr 1 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
+    method tr-method1 ( $object, Tinky::Transition $trans ) {
+      say "global transition '", $object.^name, ', ', self.^name(),
+          "', '$trans.from.name()' ===>> '$trans.to.name()'";
     }
   }
 
@@ -132,12 +132,13 @@ subtest 'global transition taps', {
   diag 'Workflow wf3';
   $th.workflow('wf3');
   is $th.state.name, 'a', "state is '$th.state.name()'";
-  is-deeply $th.next-states>>.name.sort, (<q>,), "next: {$th.next-states>>.name}";
+  is-deeply $th.next-states>>.name.sort, (<q>,),
+            "next: {$th.next-states>>.name}";
 
-#  $th.aq;
   $th.go-state('q');
   is $th.state.name, 'q', "state is '$th.state.name()'";
-  is-deeply $th.next-states>>.name.sort, (<a>,), "next: {$th.next-states>>.name}";
+  is-deeply $th.next-states>>.name.sort, (<a>,),
+            "next: {$th.next-states>>.name}";
 }
 
 #-------------------------------------------------------------------------------
@@ -160,6 +161,7 @@ subtest 'specific transition taps', {
             :workflow( { :name<wf4>, :initial-state<a>}),
             :taps( {
                 :transitions( { :zq<tr-zq>}),
+                :states( { :q( { :enter<enter-q>})})
               }
             ),
           }
@@ -167,10 +169,17 @@ subtest 'specific transition taps', {
       );
     }
 
-    method tr-zq ( $trans, $object ) {
-      say "Tr 2 '$object.^name()' '$trans.from.name()' ===>> '$trans.to.name()'";
+    method tr-zq ( $object, Tinky::Transition $trans, Str :$transit ) {
+      say "specifig transition $transit '", $object.^name, ', ', self.^name,
+          "' '$trans.from.name()' ===>> '$trans.to.name()'";
       is $trans.from.name, 'z', "Comes from 'z'";
       is $trans.to.name, 'q', "Goes to 'q'";
+    }
+
+    method enter-q ( $object, Str :$state, EventType :$event) {
+      say "state enter event: enter q in ", $object.^name, ', ', self.^name;
+      is $state, 'q', 'state is q';
+      is $event, Enter, 'event is Enter';
     }
   }
 
@@ -220,12 +229,12 @@ subtest 'state taps', {
       );
     }
 
-    method leave-a ( ) {
-      say "Tr 2 left  a in '{self.^name()}'";
+    method leave-a ( $object ) {
+      say "state leave event: left  a in ", $object.^name, ', ', self.^name;
     }
 
-    method enter-z ( ) {
-      say "Tr 2 enter z in '{self.^name()}'";
+    method enter-z ( $object ) {
+      say "state enter event: enter z in ", $object.^name, ', ', self.^name;
     }
   }
 
@@ -239,6 +248,10 @@ subtest 'state taps', {
   $th.go-state('z');
   is $th.state.name, 'z', "state is '$th.state.name()'";
   is-deeply $th.next-states>>.name.sort, (<a>,), "next: {$th.next-states>>.name}";
+
+  diag 'Workflow wf4';
+  $th.workflow('wf4');
+  $th.go-state('q');
 }
 
 #-------------------------------------------------------------------------------
