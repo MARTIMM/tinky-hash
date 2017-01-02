@@ -1,12 +1,9 @@
 {
   "description":        "A Hash thingy using Tinky",
   "name":               "Tinky::Hash",
-  "version":            "0.4.2.2",
+  "version":            "0.4.2.3",
   "depends": [
     "Tinky"
-  ],
-  "test-depends": [
-    "Data::Dump::Tree"
   ],
   "provides": {
     "Tinky::Hash":      "lib/Tinky/Hash.pm6"

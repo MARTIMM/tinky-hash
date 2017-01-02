@@ -1,6 +1,5 @@
 use v6.c;
 use Tinky;
-#use Data::Dump::Tree;
 
 class Tinky::Hash does Tinky::Object {
 
@@ -144,7 +143,6 @@ class Tinky::Hash does Tinky::Object {
                        and $t.to.name eq $to;
             }
 
-#say "$o, $global-method, ", self.^name if ?$global-method and self.^can($global-method);
             self."$global-method"( $o, $t)
                     if ?$global-method and self.^can($global-method);
           }
