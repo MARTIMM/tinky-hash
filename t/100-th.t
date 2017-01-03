@@ -3,15 +3,15 @@ use Test;
 use Tinky::Hash;
 
 #-------------------------------------------------------------------------------
-subtest 'instantiate', {
+subtest {
 
   my Tinky::Hash $th .= new;
   is $th.^name, 'Tinky::Hash', 'type ok';
   ok $th.defined, 'object defined';
-}
+}, 'instantiate';
 
 #-------------------------------------------------------------------------------
-subtest 'setup', {
+subtest {
 
   my Tinky::Hash $th .= new(
     :config( %(
@@ -41,10 +41,10 @@ subtest 'setup', {
   $th.go-state('b');
   is $th.state.name, 'b', "starting state is '$th.state.name()'";
   is-deeply $th.next-states>>.name.sort, <a c>, "next: {$th.next-states>>.name}";
-}
+}, 'setup';
 
 #-------------------------------------------------------------------------------
-subtest 'class setup', {
+subtest {
 
   class C1th is Tinky::Hash {
 
@@ -97,10 +97,10 @@ subtest 'class setup', {
   $th.workflow('wf1');
   is $th.state.name, 'c', "state is '$th.state.name()'";
   is-deeply $th.next-states>>.name.sort, <a b>, "next: {$th.next-states>>.name}";
-}
+}, 'class setup';
 
 #-------------------------------------------------------------------------------
-subtest 'global transition taps', {
+subtest {
 
   class C2th is Tinky::Hash {
 
@@ -139,10 +139,10 @@ subtest 'global transition taps', {
   is $th.state.name, 'q', "state is '$th.state.name()'";
   is-deeply $th.next-states>>.name.sort, (<a>,),
             "next: {$th.next-states>>.name}";
-}
+}, 'global transition taps';
 
 #-------------------------------------------------------------------------------
-subtest 'specific transition taps', {
+subtest {
 
   class C3th is Tinky::Hash {
 
@@ -198,10 +198,10 @@ subtest 'specific transition taps', {
   diag 'Workflow wf3, transition supply from previous workflow';
   $th.workflow('wf3');
   $th.go-state('a');
-}
+}, 'specific transition taps';
 
 #-------------------------------------------------------------------------------
-subtest 'state taps', {
+subtest {
 
   class C4th is Tinky::Hash {
 
@@ -252,7 +252,7 @@ subtest 'state taps', {
   diag 'Workflow wf4';
   $th.workflow('wf4');
   $th.go-state('q');
-}
+}, 'state taps';
 
 #-------------------------------------------------------------------------------
 done-testing;
