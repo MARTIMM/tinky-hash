@@ -7,7 +7,7 @@ my Tinky::Hash $th;
 #-------------------------------------------------------------------------------
 subtest {
 
-  try-cfg Any, /:s Type check failed in binding to/;
+  try-cfg Any, /:s Type check failed in binding/;
   try-cfg {}, /:s No configuration provided/;
   try-cfg {:states([])}, /:s No states defined/;
   try-cfg {:states([< a b c>])}, /:s No transitions defined/;
