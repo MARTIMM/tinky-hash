@@ -5,7 +5,7 @@ use Tinky::Hash;
 my Tinky::Hash $th;
 
 #-------------------------------------------------------------------------------
-subtest {
+subtest 'configuration errors', {
 
   try-cfg Any, /:s Type check failed in binding/;
   try-cfg {}, /:s No configuration provided/;
@@ -78,10 +78,10 @@ subtest {
     :taps( { :states( { :c( { :enter<m4>})})})
   },
   /:s State enter method \'m4\' not found in Tinky\:\:Hash/;
-}, 'configuration errors';
+}
 
 #-------------------------------------------------------------------------------
-subtest {
+subtest 'run errors', {
 
   class C1 is Tinky::Hash {
     submethod BUILD ( ) {
@@ -150,7 +150,7 @@ subtest {
 
   try-run {$th1.workflow('wf1')},
   /:s Cannot switch workflow. State \'p\' not found in workflow \'wf1\'/;
-}, 'run errors';
+}
 
 #-------------------------------------------------------------------------------
 sub try-cfg ( Any $config, Regex $error-text ) {
