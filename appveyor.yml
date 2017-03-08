@@ -19,7 +19,7 @@ install:
   - SET PATH=C:\rakudo\bin;C:\rakudo\share\perl6\site\bin;%PATH%
   - zef update
   - zef --/test install Tinky
-  - zef depsonly .
+  - zef --depsonly .
 #  - panda install Tinky
 
 build: off
