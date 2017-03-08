@@ -17,14 +17,15 @@ install:
 #  - appveyor DownloadFile "http://rakudo.org/downloads/star/rakudo-star-2016.11-x86_64 (JIT).msi" -FileName "%APPVEYOR_BUILD_FOLDER%\rakudo.msi"
   - msiexec /i rakudo.msi /quiet /qn /norestart /log install.log
   - SET PATH=C:\rakudo\bin;C:\rakudo\share\perl6\site\bin;%PATH%
-  - panda update
-  - panda installdeps .
+  - zef update
+  - zef --/test Tinky
+  - zef depsonly .
 #  - panda install Tinky
 
 build: off
 
 test_script:
-  - prove -v --merge --exec "perl6 -Ilib" t
+  - prove -v --exec "perl6 -Ilib" t
 
 # fetch repository as zip archive
 shallow_clone: true
@@ -32,6 +33,6 @@ shallow_clone: true
 # set clone depth
 clone_depth: 4
 
-environment:
-  PANDA_SUBMIT_TESTREPORTS: 1
+#environment:
+#  PANDA_SUBMIT_TESTREPORTS: 1
   
