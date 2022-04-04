@@ -1,4 +1,5 @@
-use v6.c;
+use v6;
+
 use Test;
 use Tinky::Hash;
 
@@ -104,6 +105,8 @@ subtest 'global transition taps', {
 
   class C2th is Tinky::Hash {
 
+    has Str $!class-name = "Class C2th";
+
     submethod BUILD ( ) {
 
       self.from-hash(
@@ -122,8 +125,9 @@ subtest 'global transition taps', {
     }
 
     method tr-method1 ( $object, Tinky::Transition $trans ) {
-      say "global transition '", $object.^name, ', ', self.^name(),
-          "', '$trans.from.name()' ===>> '$trans.to.name()'";
+      diag [~] "global transition '", $object.^name, ', ', self.^name(),
+          "', '$trans.from.name()' ===>> '$trans.to.name()'",
+          ". Class of this object is $!class-name";
     }
   }
 
@@ -170,14 +174,14 @@ subtest 'specific transition taps', {
     }
 
     method tr-zq ( $object, Tinky::Transition $trans, Str :$transit ) {
-      say "specifig transition $transit '", $object.^name, ', ', self.^name,
+      diag [~] "specifig transition $transit '", $object.^name, ', ', self.^name,
           "' '$trans.from.name()' ===>> '$trans.to.name()'";
       is $trans.from.name, 'z', "Comes from 'z'";
       is $trans.to.name, 'q', "Goes to 'q'";
     }
 
     method enter-q ( $object, Str :$state, EventType :$event) {
-      say "state enter event: enter q in ", $object.^name, ', ', self.^name;
+      diag [~] "state enter event: enter q in ", $object.^name, ', ', self.^name;
       is $state, 'q', 'state is q';
       is $event, Enter, 'event is Enter';
     }
@@ -230,11 +234,11 @@ subtest 'state taps', {
     }
 
     method leave-a ( $object ) {
-      say "state leave event: left  a in ", $object.^name, ', ', self.^name;
+      diag [~] "state leave event: left  a in ", $object.^name, ', ', self.^name;
     }
 
     method enter-z ( $object ) {
-      say "state enter event: enter z in ", $object.^name, ', ', self.^name;
+      diag [~] "state enter event: enter z in ", $object.^name, ', ', self.^name;
     }
   }
 
@@ -256,3 +260,5 @@ subtest 'state taps', {
 
 #-------------------------------------------------------------------------------
 done-testing;
+
+=finish
